@@ -10,7 +10,7 @@ from telebot import types
 import psycopg
 #from telebot.service_utils import quick_markup
 
-#DB
+#DB - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - - 
 def get_ls_from_db(adrs):
     split_adrs = adrs.split(',')
 
@@ -26,7 +26,7 @@ def get_ls_from_db(adrs):
     p_house = split_adrs[1].strip()
     kv = split_adrs[2].strip()
     
-    with psycopg.connect('dbname=x user=x host=x password=x')as conn:
+    with psycopg.connect('dbname=X user=X host=X password=X')as conn:
         with conn.cursor() as cur:
             cur.execute(q, (p_street,('^' + p_house + '$'),kv,))
             b = cur.fetchall()
@@ -34,22 +34,29 @@ def get_ls_from_db(adrs):
             #print(cnt[0].name)
             for record in b:
                 #print(record[1])
-                ls_result = record[1] + ' : ' + record[3] 
+                ls_result = record[1] + ' - Это номер ЛС МУП САХ, относящийся к адресу: ' + record[3] 
             conn.commit()
     return ls_result
 
+# - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - -
 
-bot = telebot.TeleBot("x:AAHaeCL-x", parse_mode=None)
+icons = {'phone':'\U0000260E','receipt':'U+1F9FE','email':'U+270','money':'\U0001F4B0',
+         'calendar':'U+1F4C6','bin':'U+1F6AE','warning':'U+26A0',
+         'eco':'U+267B','check':'U+2714','cross':'\U0000274C','green_circle':'\U0001F7E2',
+         'computer':'\U0001F4BB'}
+
+bot = telebot.TeleBot("TOKEN", parse_mode=None)
 
 print(bot.get_me())
 print(types.BotCommandScope)
 #print(bot.get_chat('@tbros'))
 #bot.send_message('@tbros','aaa')
 
-bc = types.BotCommand('start','начать диалог')
-bc_a = types.BotCommand('fun','anekdot')
-bc_q = types.BotCommand('question','ask smt')
-bot.set_my_commands([bc,bc_a,bc_q])
+bc_start = types.BotCommand('start','Начать диалог с ботом')
+bc_getls = types.BotCommand('getls','Узнать лицевой счет')
+bc_pay = types.BotCommand('pays','Как оплатить')
+bc_contacts = types.BotCommand('contacts','Контакты')
+bot.set_my_commands([bc_start,bc_getls,bc_pay,bc_contacts])
 #bot.set_my_commands([bc,bc_a,bc_q], types.BotCommandScope())
 
 
@@ -59,17 +66,44 @@ bot.set_my_commands([bc,bc_a,bc_q])
 #commands
 @bot.message_handler(commands=['start','help'])
 def send_welcome(message):
-    bot.reply_to(message, "\U0001F916Добро пожаловать!")
-    #Inline Keyboards (don't send msg to the chat)
-    k_btn = types.InlineKeyboardButton(text='iLbtn', callback_data='yess')
-    keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(k_btn)
-    #show lnline keyboard in bot's chat
-    bot.send_message(message.from_user.id, text="select", reply_markup=keyboard)
-    #start_markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    #start_markup.row('/start', '/help', '/hide')
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    markup.add(types.KeyboardButton(icons['green_circle'] + ' Узнать ЛС'))
+    markup.add(types.KeyboardButton(icons['computer'] +' Вопрос по личному кабинету'))
+    markup.add(types.KeyboardButton(icons['money'] + ' Вопрос по оплате'))
+    msg = bot.send_message(message.chat.id, "Какой у Вас вопрос?", reply_markup=markup)
+    #log
+    log_file = open('botlog.txt','a')
+    log_file.write('\n' + str(message.date) + ' ' + message.from_user.first_name)
+    log_file.close()
 
-#Inline handler (action for bress inline buttons)
+#process main questions
+
+def get_ls(message):
+    print('get_ls function. msg= ' + message.text)
+    print('user: ' + message.from_user.first_name)
+    if message.text == 'Нет':
+        bot.send_message(message.from_user.id, 'Тогда вам нужно найти номер на сайте.')
+        types.ReplyKeyboardRemove()
+    elif message.text == 'Да':
+        bot.send_message(message.from_user.id, '''Введите Улицу, дом, квартиру через запятые.\n
+Например: Владимировская, 3, 1''')
+        bot.register_next_step_handler(message, nsk_obl)
+
+def nsk_obl(message): # use input address from person to get LS from DB
+    person_ls = get_ls_from_db(message.text)
+    bot.reply_to(message,person_ls)
+
+@bot.message_handler(regexp=".*" + icons['green_circle'] + ".*")
+def ls_fork(message):
+    #bot.reply_to(message, '''Вы проживете в г. Новосибирск?''')
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add(types.KeyboardButton('Да'))
+    markup.add(types.KeyboardButton('Нет'))
+    bot.send_message(message.chat.id, "Вы проживете в г. Новосибирск?", reply_markup=markup)
+    bot.register_next_step_handler(message, get_ls)
+
+
+#Inline handler (action for press inline buttons)
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
     if call.data == "yess": #call.data it's callback_data which we add when initialise button
@@ -80,16 +114,25 @@ def callback_worker(call):
 
 
 
-@bot.message_handler(regexp=".*регистр.*")
+@bot.message_handler(regexp=".*(ператор|человек|алоб).*")
 def echo_rex(message):
-    bot.reply_to(message, '''Вы хотите зарегистрировать ЛК!''')
+    bot.reply_to(message, '''Вы можете подать обращение на сайте мупсах.рф.
+Кроме того cообщить о переполнении контейнеров ТКО, а также оставить заявку на вывоз КГО и РСО можно по номеру телефона ДИСПЕТЧЕРСКОЙ СЛУЖБЫ: 363 - 04 - 22
+Вопросы, связанные с начислениями и оплатой услуги по обращению ТКО, можно задать по номеру телефона АБОНЕНТСКОЙ СЛУЖБЫ: 363 - 04 - 11
+Наши операторы принимают звонки потребителей с 8:00 до 20:00 ежедневно''')
+
+@bot.message_handler(regexp=".*(ператор|человек|алоба).*")
+def pay_question(message):
+    bot.reply_to(message, '''Вопросы, связанные с начислениями и оплатой услуги по обращению ТКО, можно задать по номеру телефона АБОНЕНТСКОЙ СЛУЖБЫ: 363 - 04 - 11
+Наши операторы принимают звонки потребителей с 8:00 до 20:00 ежедневно''')
 
 @bot.message_handler(regexp=".*ицевой.*")
 def echo_rex(message):
     #bot.reply_to(message, '''Хотите узнать новый ЛС в МУП САХ?''')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(types.KeyboardButton('мой ЛС'))
-    msg = bot.send_message(message.chat.id, "Хотите узнать новый ЛС в МУП САХ?", reply_markup=markup)
+    markup.add(types.KeyboardButton(icons['green_circle'] + ' Узнать мой ЛС'))
+    markup.add(types.KeyboardButton('Открепиь ЛС от ЛК'))
+    msg = bot.send_message(message.chat.id, "Какой у Вас вопрос по поводу лицевого счета?", reply_markup=markup)
 
 #regexp example 3
 @bot.message_handler(regexp=".*(рикрепи|обавить).*")
@@ -106,9 +149,21 @@ def echo_all(message):
         bot.reply_to(message,'Take shit')
     elif message.text == 'мой ЛС':
         bot.reply_to(message,'Here your new LS')
-    elif message.text == 'ls':
-        person_ls = get_ls_from_db('владимировская,3,1')
-        bot.reply_to(message,person_ls)
+    else:
+        bot.reply_to(message,'Могу ещё чем-то помочь?')
+
+#example of inline
+@bot.message_handler(commands=['xxx','yyy'])
+def test_welcome(message):
+    bot.reply_to(message, "\U0001F916Добро пожаловать!")
+    #Inline Keyboards (don't send msg to the chat)
+    k_btn = types.InlineKeyboardButton(text='iLbtn', callback_data='yess')
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(k_btn)
+    #show lnline keyboard in bot's chat
+    bot.send_message(message.from_user.id, text="select", reply_markup=keyboard)
+    #start_markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    #start_markup.row('/start', '/help', '/hide')
 
 bot.infinity_polling()
 
