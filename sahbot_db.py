@@ -6,6 +6,7 @@
 import telebot
 import re
 from telebot import types
+from datetime import datetime
 
 import psycopg
 #from telebot.service_utils import quick_markup
@@ -73,8 +74,9 @@ def send_welcome(message):
     msg = bot.send_message(message.chat.id, "Какой у Вас вопрос?", reply_markup=markup)
     #log
     log_file = open('botlog.txt','a')
-    log_file.write('\n' + str(message.date) + ' ' + message.from_user.first_name)
-    log_file.close()
+	req_date = datetime.fromtimestamp(message.date).strftime('%Y-%m-%d %H:%M:%S')
+    log_file.write('\n' + str(req_date) + ' ' + message.from_user.first_name + ' ' + str(message.from_user.last_name or ''))
+     log_file.close()
 
 #process main questions
 
