@@ -84,8 +84,8 @@ def get_ls(message):
     print('get_ls function. msg= ' + message.text)
     print('user: ' + message.from_user.first_name)
     if message.text == 'Нет':
-        bot.send_message(message.from_user.id, 'Тогда вам нужно найти номер на сайте.')
-        types.ReplyKeyboardRemove()
+        #3rd argument for remove buttons from ls_fork(message) function
+        bot.send_message(message.from_user.id, 'Тогда вам нужно найти номер на сайте.',reply_markup=types.ReplyKeyboardRemove())
     elif message.text == 'Да':
         bot.send_message(message.from_user.id, '''Введите Улицу, дом, квартиру через запятые.\n
 Например: Владимировская, 3, 1''')
