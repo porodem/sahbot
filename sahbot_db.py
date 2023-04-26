@@ -158,8 +158,13 @@ def attach_ls(message):
 #anything other messages
 @bot.message_handler(func=lambda m:True)
 def echo_all(message):
-    if message.text == 'send shit':
-        bot.reply_to(message,'Take shit')
+    if message.text == 'File':
+        file = open('C:\Python\Python310\Scripts\sahbot\инструкция ЛК САХ.pdf','rb')
+        msg = bot.send_document(message.chat.id,file)
+        doc_id = msg.document.file_id #this file_id only for learning purposes
+        # file once being loaded better handle by this ID, not downloading it' anytime it's needed
+        # if we work not with document, but photo or audio etc. principe is the same
+        print('file_id: ' + doc_id)
     elif message.text == 'мой ЛС':
         bot.reply_to(message,'Here your new LS')
     else:
