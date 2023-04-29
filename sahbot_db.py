@@ -9,7 +9,6 @@ from telebot import types
 from datetime import datetime
 
 import psycopg
-#from telebot.service_utils import quick_markup
 
 #DB - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - - 
 def get_ls_from_db(adrs):
@@ -48,16 +47,11 @@ icons = {'phone':'\U0000260E','receipt':'U+1F9FE','email':'U+270','money':'\U000
 
 bot = telebot.TeleBot("TOKEN", parse_mode=None)
 
-print(bot.get_me())
-print(types.BotCommandScope)
-#print(bot.get_chat('@tbros'))
-#bot.send_message('@tbros','aaa')
 
 bc_start = types.BotCommand('start','Начать диалог с ботом')
 bc_getls = types.BotCommand('getls','Узнать лицевой счет')
-bc_pay = types.BotCommand('pays','Как оплатить')
 bc_contacts = types.BotCommand('contacts','Контакты')
-bot.set_my_commands([bc_start,bc_getls,bc_pay,bc_contacts])
+bot.set_my_commands([bc_start,bc_getls,bc_contacts])
 #bot.set_my_commands([bc,bc_a,bc_q], types.BotCommandScope())
 
 
@@ -74,9 +68,16 @@ def send_welcome(message):
     msg = bot.send_message(message.chat.id, "Какой у Вас вопрос?", reply_markup=markup)
     #log
     log_file = open('botlog.txt','a')
-	req_date = datetime.fromtimestamp(message.date).strftime('%Y-%m-%d %H:%M:%S')
+    req_date = datetime.fromtimestamp(message.date).strftime('%Y-%m-%d %H:%M:%S')
     log_file.write('\n' + str(req_date) + ' ' + message.from_user.first_name + ' ' + str(message.from_user.last_name or ''))
-     log_file.close()
+    log_file.close()
+
+@bot.message_handler(commands=['getls','contacts'])
+def ls_or_contacts(message):
+    if message.text == '/getls':
+        ls_fork(message)
+    else:
+        more_contacts(message)
 
 #process main questions
 
@@ -86,6 +87,7 @@ def get_ls(message):
     if message.text == 'Нет':
         #3rd argument for remove buttons from ls_fork(message) function
         bot.send_message(message.from_user.id, 'Тогда вам нужно найти номер на сайте.',reply_markup=types.ReplyKeyboardRemove())
+        print('get_ls end')
     elif message.text == 'Да':
         bot.send_message(message.from_user.id, '''Введите Улицу, дом, квартиру через запятые.\n
 Например: Владимировская, 3, 1''')
@@ -117,7 +119,7 @@ def callback_worker(call):
 
 
 @bot.message_handler(regexp=".*(ператор|человек|алоб).*")
-def echo_rex(message):
+def more_contacts(message):
     bot.reply_to(message, '''Вы можете подать обращение на сайте мупсах.рф.
 Кроме того cообщить о переполнении контейнеров ТКО, а также оставить заявку на вывоз КГО и РСО можно по номеру телефона ДИСПЕТЧЕРСКОЙ СЛУЖБЫ: 363 - 04 - 22
 Вопросы, связанные с начислениями и оплатой услуги по обращению ТКО, можно задать по номеру телефона АБОНЕНТСКОЙ СЛУЖБЫ: 363 - 04 - 11
@@ -126,10 +128,10 @@ def echo_rex(message):
 @bot.message_handler(regexp=".*(латить|лат[а|е]).*")
 def pay_question(message):
     bot.reply_to(message, '''Совершить оплату можно с помощью:
-- Личного кабинета
+- Личного кабинета https://lk.cax54.ru
 - Приложения Платосфера
 - Квартплата+
-- Сбербанк
+- приложение Сбербанк
 Вопросы, связанные с начислениями и оплатой услуги по обращению ТКО, можно задать по номеру телефона АБОНЕНТСКОЙ СЛУЖБЫ: 363 - 04 - 11
 Наши операторы принимают звонки потребителей с 8:00 до 20:00 ежедневно''')
 
@@ -147,12 +149,13 @@ def echo_rex(message):
     markup.add(types.KeyboardButton('Открепиь ЛС от ЛК'))
     msg = bot.send_message(message.chat.id, "Какой у Вас вопрос по поводу лицевого счета?", reply_markup=markup)
 
+
+
 #regexp example 3
 @bot.message_handler(regexp=".*(рикрепи|обавить).*")
 def attach_ls(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(types.KeyboardButton('send shit'))
-    msg = bot.send_message(message.chat.id, "choose type shit", reply_markup=markup)
+    bot.reply_to(message,'''Прикрепить ЛС можно в личном кабинете. Для этого войдите или зарегистрируйтесь
+зарегистрируйтесь на сайте мупсах.рф - в разделе Личный кабинет. Прямая ссылка: https://lk.cax54.ru/''')
     
 
 #anything other messages
@@ -168,7 +171,7 @@ def echo_all(message):
     elif message.text == 'мой ЛС':
         bot.reply_to(message,'Here your new LS')
     else:
-        bot.reply_to(message,'Могу ещё чем-то помочь?')
+        bot.reply_to(message,'Простите, я Вас непонял. Пожалуйста, попробуйте ещё раз или воспользуйтесь кнопкой "Меню".')
 
 #example of inline
 @bot.message_handler(commands=['xxx','yyy'])
