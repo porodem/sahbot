@@ -12,6 +12,8 @@ import psycopg
 
 #DB - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - - 
 def get_ls_from_db(adrs):
+    """Connect to DB and finds LS by address
+example: 'Street_name, 12, 7'"""
     split_adrs = adrs.split(',')
 
     ls_result = ''
@@ -161,6 +163,7 @@ def attach_ls(message):
 #anything other messages
 @bot.message_handler(func=lambda m:True)
 def echo_all(message):
+    """Send file to user"""
     if message.text == 'File':
         file = open('C:\Python\Python310\Scripts\sahbot\инструкция ЛК САХ.pdf','rb')
         msg = bot.send_document(message.chat.id,file)
