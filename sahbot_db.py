@@ -93,11 +93,15 @@ def get_ls(message):
     elif message.text == 'Да':
         bot.send_message(message.from_user.id, '''Введите Улицу, дом, квартиру через запятые.\n
 Например: Владимировская, 3, 1''')
-        bot.register_next_step_handler(message, nsk_obl)
+        bot.register_next_step_handler(message, ask_db_ls)
 
-def nsk_obl(message): # use input address from person to get LS from DB
-    person_ls = get_ls_from_db(message.text)
-    bot.reply_to(message,person_ls)
+def ask_db_ls(message): # use input address from person to get LS from DB
+    if re.match('.*,.*,.*',message.text):
+        person_ls = get_ls_from_db(message.text)
+        bot.reply_to(message,person_ls)
+    else:
+        message.text = 'Да'
+        get_ls(message)
 
 @bot.message_handler(regexp=".*" + icons['green_circle'] + ".*")
 def ls_fork(message):
