@@ -30,7 +30,7 @@ example: 'Street_name, 12, 7'"""
     
     with psycopg.connect('dbname=X user=X host=X password=X')as conn:
         with conn.cursor() as cur:
-            cur.execute(q, (p_street,('^' + p_house + '$'),kv,))
+            cur.execute(q, ((' ' + p_street),('^' + p_house + '$'),kv,))
             b = cur.fetchall()
             cnt = cur.description
             #print(cnt[0].name)
