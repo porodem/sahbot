@@ -143,9 +143,18 @@ def pay_question(message):
 
 @bot.message_handler(regexp=".*(абинет|ичный|айте).*")
 def site_account(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add(types.KeyboardButton('Да'))
+    markup.add(types.KeyboardButton('Нет'))
     bot.reply_to(message, '''Кажется вы хотите зарегистрировать личный кабинет на сайте?
 Если так, пожалуйста, пройтите по ссылке https://lk.cax54.ru/client/login
-Скоро мне добавят функцию и я смогу вам отправлять инструкцию работе в ЛК!''')
+Хотите я отправлю вам инструкцию в формате PDF?''', reply_markup = markup)
+    bot.register_next_step_handler(message, get_lk_guide)
+
+def get_lk_guide(message):
+    if message.text == 'Да':
+        file = open('инструкция ЛК САХ.pdf','rb')
+        msg = bot.send_document(message.chat.id,file)
 
 @bot.message_handler(regexp=".*ицевой.*")
 def echo_rex(message):
@@ -169,7 +178,7 @@ def attach_ls(message):
 def echo_all(message):
     """Send file to user"""
     if message.text == 'File':
-        file = open('C:\Python\Python310\Scripts\sahbot\инструкция ЛК САХ.pdf','rb')
+        file = open('инструкция ЛК САХ.pdf','rb')
         msg = bot.send_document(message.chat.id,file)
         doc_id = msg.document.file_id #this file_id only for learning purposes
         # file once being loaded better handle by this ID, not downloading it' anytime it's needed
