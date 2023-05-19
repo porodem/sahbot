@@ -8,39 +8,7 @@ import re
 from telebot import types
 from datetime import datetime
 
-import psycopg
-
-#DB - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - - 
-def get_ls_from_db(adrs):
-    """Connect to DB and finds LS by address
-example: 'Street_name, 12, 7'"""
-    split_adrs = adrs.split(',')
-
-    ls_result = ''
-
-    q = '''select * from ls_adr_split a
-    where a.str ~* %s
-    and house ~* %s
-    and kv = %s
-    '''
-
-    p_street = split_adrs[0]
-    p_house = split_adrs[1].strip()
-    kv = split_adrs[2].strip()
-    
-    with psycopg.connect('dbname=X user=X host=X password=X')as conn:
-        with conn.cursor() as cur:
-            cur.execute(q, (p_street,('^' + p_house + '$'),kv,))
-            b = cur.fetchall()
-            cnt = cur.description
-            #print(cnt[0].name)
-            for record in b:
-                #print(record[1])
-                ls_result = record[1] + ' - Это номер ЛС МУП САХ, относящийся к адресу: ' + record[3] 
-            conn.commit()
-    return ls_result
-
-# - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - -  - - - - - - - -
+import sqlhelper
 
 icons = {'phone':'\U0000260E','receipt':'U+1F9FE','email':'U+270','money':'\U0001F4B0',
          'calendar':'U+1F4C6','bin':'U+1F6AE','warning':'U+26A0',
@@ -97,15 +65,15 @@ def get_ls(message):
 
 def ask_db_ls(message): # use input address from person to get LS from DB
     if re.match('.*,.*,.*',message.text):
-        person_ls = get_ls_from_db(message.text)
+        person_ls = sqlhelper.get_ls_from_db(message.text)
         bot.reply_to(message,person_ls)
     else:
         message.text = 'Да'
         get_ls(message)
+    
 
 @bot.message_handler(regexp=".*" + icons['green_circle'] + ".*")
 def ls_fork(message):
-    #bot.reply_to(message, '''Вы проживете в г. Новосибирск?''')
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     markup.add(types.KeyboardButton('Да'))
     markup.add(types.KeyboardButton('Нет'))
